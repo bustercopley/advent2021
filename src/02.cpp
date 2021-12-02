@@ -1,41 +1,47 @@
 #include "precompiled.h"
+#include "symbols.h"
 
-auto regex = re::regex(R"(^(\d+),(\d+)|(?:forward|(up)|(down)) (\d+)$)");
+auto regex = re::regex(R"(^(\d+),(\d+)|(\w+) (\d+)$)");
 
 void parts(std::istream &stream, int part) {
   bool test = false;
-  ll result = -1, expected = -1;
+  ll expected = -1;
   ll depth = 0, position = 0, aim = 0;
+  enum class cmd : sz { up, down, forward };
+  symbols commands;
+  commands["up"];
+  commands["down"];
+  commands["forward"];
 
   for (ss line; std::getline(stream, line);) {
     if (auto m = match(regex, line)) {
       if (matched(m, 1)) {
         test = true;
         expected = string_to<ll>(match_string(m, part));
-      } else if (part == 1) {
-        ll value = string_to<ll>(match_string(m, 5));
-        if (matched(m, 3)) {
-          depth -= value;
-        } else if (matched(m, 4)) {
-          depth += value;
-        } else {
-          position += value;
-        }
       } else {
-        ll value = string_to<ll>(match_string(m, 5));
-        if (matched(m, 3)) {
-          aim -= value;
-        } else if (matched(m, 4)) {
-          aim += value;
+        auto command = static_cast<cmd>(commands[match_string(m, 3)]);
+        ll arg = string_to<ll>(match_string(m, 4));
+        if (part == 1) {
+          switch (command) {
+          case cmd::up: depth -= arg; break;
+          case cmd::down: depth += arg; break;
+          case cmd::forward: position += arg; break;
+          }
         } else {
-          position += value;
-          depth += value * aim;
+          switch (command) {
+          case cmd::up: aim -= arg; break;
+          case cmd::down: aim += arg; break;
+          case cmd::forward:
+            position += arg;
+            depth += arg * aim;
+            break;
+          }
         }
       }
     }
   }
 
-  result = depth * position;
+  ll result = depth * position;
 
   if (!test) {
     std::cout << result << std::endl;
@@ -46,12 +52,12 @@ void parts(std::istream &stream, int part) {
 }
 
 int main() {
-  std::cout << "Day 1, Part One" << std::endl;
+  std::cout << "Day 2, Part One" << std::endl;
   for (auto filename: {"test/02", "input/02"}) {
     if (std::ifstream stream(filename); stream) { parts(stream, 1); }
   }
 
-  std::cout << "Day 1, Part Two" << std::endl;
+  std::cout << "Day 2, Part Two" << std::endl;
   for (auto filename: {"test/02", "input/02"}) {
     if (std::ifstream stream(filename); stream) { parts(stream, 2); }
   }
