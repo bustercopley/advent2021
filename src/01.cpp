@@ -4,8 +4,10 @@ auto regex = re::regex(R"(^(\d+)(?:,(\d+))?$)");
 
 void parts(std::istream &stream, int part) {
   bool test = false;
-  ll result = -1, expected = -1;
-  vec<int> entries;
+  ll result = 0, expected = -1;
+  sz size = (part == 1 ? 2 : 4);
+  sz index = 0;
+  vec<int> entries(size, std::numeric_limits<int>::max());
 
   for (ss line; std::getline(stream, line);) {
     if (auto m = match(regex, line)) {
@@ -13,25 +15,10 @@ void parts(std::istream &stream, int part) {
         test = true;
         expected = string_to<ll>(match_string(m, part));
       } else {
-        entries.push_back(string_to<ll>(match_string(m, 1)));
-      }
-    }
-  }
-
-  if (part == 1) {
-    if (!empty(entries)) {
-      result = 0;
-      for (sz i = 1; i != size(entries); ++i) {
-        result += entries[i - 1] < entries[i];
-      }
-    }
-  } else {
-    if (size(entries) >= 2) {
-      ll previous = std::numeric_limits<ll>::min();
-      for (sz i = 2; i != size(entries); ++i) {
-        ll current = entries[i - 2] + entries[i - 1] + entries[i];
-        result += previous < current;
-        previous = current;
+        sz next = (index + 1) % size;
+        entries[index] = string_to<ll>(match_string(m, 1));
+        result += entries[index] > entries[next];
+        index = next;
       }
     }
   }
