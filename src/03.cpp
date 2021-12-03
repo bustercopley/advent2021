@@ -1,11 +1,13 @@
+#include "binary.h"
 #include "precompiled.h"
 #include "symbols.h"
-#include "binary.h"
+#include <ranges>
 
 auto regex = re::regex(R"(^(\d+),(\d+)|(\d+)$)");
 
 void parts(std::istream &stream, int part) {
   bool test = false;
+  ll result;
   ll expected = -1;
   vec<ss> report;
 
@@ -20,42 +22,36 @@ void parts(std::istream &stream, int part) {
     }
   }
 
-  ll result;
-
   if (part == 1) {
-    vec<ll> freq;
-    ll count = 0;
+    vec<sz> freq;
     for (auto bits: report) {
       freq.resize(size(bits));
-      ++count;
       for (int i = 0; char c: bits) {
         freq[i] += (c == '1');
         ++i;
       }
     }
     ll gamma = 0, epsilon = 0;
-    for (int i = 1 << (size(freq) - 1); auto n: freq) {
-      gamma |= i * (2 * n > count);
-      epsilon |= i * (2 * n < count);
-      i >>= 1;
+    for (auto count: freq) {
+      gamma = (gamma << 1) | (2 * count > size(report));
+      epsilon = (epsilon << 1) | (2 * count < size(report));
     }
-
     result = gamma * epsilon;
   } else {
-    std::sort(begin(report), end(report));
+    std::ranges::sort(report);
     result = 1;
-    for (int i = 0; i != 2; ++i) {
-      auto b = begin(report);
-      auto e = end(report);
-      ss prefix;
-      while (e - b > 1) {
-        auto mid = std::find_if(b, e,
-          [index = size(prefix)](auto item) { return item[index] == '1'; });
-        int bit = i ^ (mid - b <= e - mid);
-        prefix += ('0' + bit);
-        (bit ? b : e) = mid;
+    for (auto flag: {false, true}) {
+      std::ranges::subrange range{report};
+      sz index = 0;
+      while (size(range) > 1) {
+        auto middle = std::ranges::find_if(range,
+          [index](auto item) { return item[index] == '1'; });
+        auto bit = flag ^ (middle - begin(range) <= end(range) - middle);
+        range = (bit ? std::ranges::subrange{begin(range), middle}
+                     : std::ranges::subrange{middle, end(range)});
+        ++index;
       }
-      result *= from_binary(*b);
+      result *= from_binary(*begin(range));
     }
   }
 
