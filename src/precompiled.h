@@ -27,6 +27,7 @@
 #include <numbers>
 #include <numeric>
 #include <ostream>
+#include <ranges>
 #include <regex>
 #include <set>
 #include <vector>
@@ -41,5 +42,6 @@ using ll = std::int64_t;
 using ull = std::uint64_t;
 using ss = std::string;
 template <typename T> using vec = std::vector<T>;
+template <typename T, sz N> using ary = std::array<T, N>;
 
 #endif
