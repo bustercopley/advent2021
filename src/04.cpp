@@ -4,7 +4,7 @@
 
 auto regex =
   re::regex(R"(^(\d+),(\d+)$|(,)|^(?: *(\d+) +(\d+) +(\d+) +(\d+) +(\d+))$)");
-auto regex2 = re::regex(R"((\d+),?(.*)$)");
+auto regex2 = re::regex(R"((\d+)(.*)$)");
 
 struct brd {
   ary<ary<int, 5>, 5> grid;
