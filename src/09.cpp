@@ -2,22 +2,19 @@
 
 auto regex = re::regex(R"(^(\d+),(\d+)$|^(\d+)$)");
 
-struct point {
-  int x;
-  int y;
-  bool operator==(const point &) const = default;
-};
+constexpr auto undef = std::numeric_limits<sz>::max();
 
 struct data {
-  int h;
-  int index;
+  int height;
+  sz basin;
 };
 
 void parts(std::istream &stream, int part) {
   bool test = false;
   ll result = 0;
   ll expected = -1;
-  vec<vec<data>> grid;
+  vec<data> grid{};
+  sz cx = 0;
 
   for (ss line; std::getline(stream, line);) {
     if (auto m = match(regex, line)) {
@@ -25,50 +22,52 @@ void parts(std::istream &stream, int part) {
         test = true;
         expected = string_to<ll>(match_string(m, part));
       } else {
-        auto &row = grid.emplace_back();
-        for (auto c: match_string(m, 3)) {
-          row.push_back(data{c - '0', -1});
+        const auto &row = match_string(m, 3);
+        cx = size(row);
+        for (auto c: row) {
+          grid.emplace_back(c - '0', undef);
         }
       }
     }
   }
 
-  int cx = static_cast<int>(std::size(grid[0]));
-  int cy = static_cast<int>(std::size(grid));
-
-  std::vector<int> basins;
-  std::vector<point> stack;
-
-  for (int y = 0; y != cy; ++y) {
-    for (int x = 0; x != cx; ++x) {
-      auto &p = grid[y][x];
-      if (x != 0 && grid[y][x - 1].h <= p.h) continue;
-      if (x != cx - 1 && grid[y][x + 1].h <= p.h) continue;
-      if (y != 0 && grid[y - 1][x].h <= p.h) continue;
-      if (y != cy - 1 && grid[y + 1][x].h <= p.h) continue;
-      result += p.h + 1;
-      p.index = size(basins);
-      basins.push_back(0);
-      stack.push_back(point{x, y});
+  auto next = [&grid, cx](sz index) {
+    int height = grid[index].height;
+    sz x = index % cx;
+    if (x && grid[index - 1].height < height) {
+      index = index - 1;
+    } else if (x + 1 != cx && grid[index + 1].height < height) {
+      index = index + 1;
+    } else if (index >= cx && grid[index - cx].height < height) {
+      index = index - cx;
+    } else if (index + cx < size(grid) && grid[index + cx].height < height) {
+      index = index + cx;
+    } else {
+      index = undef;
     }
-  }
+    return index;
+  };
 
-  if (part == 2) {
-    while (!stack.empty()) {
-      auto [x, y] = stack.back();
-      stack.pop_back();
-      auto &p = grid[y][x];
-      ++basins[p.index];
-      auto explore = [&](int x, int y) -> void {
-        if (grid[y][x].index == -1 && grid[y][x].h != 9) {
-          grid[y][x].index = p.index;
-          stack.push_back(point{x, y});
+  vec<sz> basins;
+  vec<sz> path;
+  for (sz start = 0; start != size(grid); ++start) {
+    if (grid[start].height != 9 && grid[start].basin == undef) {
+      path.clear();
+      sz i = start;
+      while (grid[i].basin == undef) {
+        path.push_back(i);
+        if (sz j = next(i); j != undef) {
+          i = j;
+        } else {
+          grid[i].basin = size(basins);
+          basins.push_back(0);
+          result += grid[i].height + 1;
         }
-      };
-      if (x != 0) explore(x - 1, y);
-      if (x != cx - 1) explore(x + 1, y);
-      if (y != 0) explore(x, y - 1);
-      if (y != cy - 1) explore(x, y + 1);
+      }
+      basins[grid[i].basin] += size(path);
+      for (sz j: path) {
+        grid[j].basin = grid[i].basin;
+      }
     }
   }
 
