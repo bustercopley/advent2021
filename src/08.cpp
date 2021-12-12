@@ -62,10 +62,11 @@ void parts(std::istream &stream, int part) {
 
       // e is the only segment contained in 4 digits
       // f is the only segment contained in 9 digits
-      for (char segment = 'a'; auto count: counts) {
-        if (count == 4) { e = segment; }
-        if (count == 9) { f = segment; }
-        ++segment;
+      for (auto segment: ss{"abcdefg"}) {
+        switch (counts[segment - 'a']) {
+        case 4: e = segment; break;
+        case 9: f = segment; break;
+        }
       }
 
       // 2 is the only digit not containing segment f
