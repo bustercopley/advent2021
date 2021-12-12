@@ -18,18 +18,10 @@ void parts(std::istream &stream, int part) {
         char error = '\0';
         for (auto c: line) {
           switch (c) {
-          case '(':
-            stack += ')';
-            break;
-          case '[':
-            stack += ']';
-            break;
-          case '{':
-            stack += '}';
-            break;
-          case '<':
-            stack += '>';
-            break;
+          case '(': stack += ')'; break;
+          case '[': stack += ']'; break;
+          case '{': stack += '}'; break;
+          case '<': stack += '>'; break;
           default:
             if (c == stack.back()) {
               stack.pop_back();
@@ -38,13 +30,11 @@ void parts(std::istream &stream, int part) {
             }
             break;
           }
-          if (error) {
-            break;
-          }
+          if (error) { break; }
         }
         if (error) {
           if (part == 1) {
-            switch(error) {
+            switch (error) {
             case ')': result += 3; break;
             case ']': result += 57; break;
             case '}': result += 1197; break;
@@ -55,7 +45,7 @@ void parts(std::istream &stream, int part) {
           ll score = 0;
           for (char c: std::ranges::views::reverse(stack)) {
             score *= 5;
-            switch(c) {
+            switch (c) {
             case ')': score += 1; break;
             case ']': score += 2; break;
             case '}': score += 3; break;
@@ -70,7 +60,7 @@ void parts(std::istream &stream, int part) {
 
   if (part == 2) {
     std::ranges::sort(scores);
-    result = scores[size(scores)/2];
+    result = scores[size(scores) / 2];
   }
 
   if (!test) {
