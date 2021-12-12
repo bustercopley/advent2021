@@ -1,17 +1,12 @@
 #include "precompiled.h"
 #include "symbols.h"
+#include "y-combinator.h"
 
 auto regex = re::regex(R"(^(\d+),(\d+)$|^(\w+)-(\w+)$)");
 
 struct cave {
   bool big;
   vec<sz> connections;
-};
-
-struct locals {
-  sz position;
-  vec<int> explored;
-  int extra_time;
 };
 
 void parts(std::istream &stream, int part) {
@@ -45,23 +40,25 @@ void parts(std::istream &stream, int part) {
     }
   }
 
-  vec<locals> stack{{0, vec<int>(size(caves)), part == 2}};
-  while (!stack.empty()) {
-    auto [position, explored, extra_time] = std::move(stack.back());
-    stack.pop_back();
-    if (position == 1) {
-      ++result;
-    } else {
-      if (!caves[position].big) {
-        if (++explored[position] > 1) { --extra_time; }
-      }
-      for (auto next: caves[position].connections) {
-        if (caves[next].big || !explored[next] || extra_time) {
-          stack.emplace_back(next, explored, extra_time);
+  y_combinator explore{
+    [&caves](auto explore, sz position, vec<int> done, int extra_time) -> ll {
+      ll result = 0;
+      if (position == 1) {
+        ++result;
+      } else {
+        if (!caves[position].big) {
+          if (++done[position] > 1) { --extra_time; }
+        }
+        for (auto next: caves[position].connections) {
+          if (caves[next].big || !done[next] || extra_time) {
+            result += explore(next, done, extra_time);
+          }
         }
       }
-    }
-  }
+      return result;
+    }};
+
+  result = explore(0, vec<int>(size(caves)), part == 2);
 
   if (!test) {
     std::cout << result << std::endl;
