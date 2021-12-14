@@ -8,8 +8,10 @@ void parts(std::istream &stream, int part) {
   bool test = false;
   ll result = 0;
   ll expected = -1;
-  ss polymer;
+  std::map<ss, sz> polymer;
   std::map<ss, char> rules;
+  char first{};
+  char last{};
 
   for (ss line; std::getline(stream, line);) {
     if (auto m = match(regex, line)) {
@@ -19,35 +21,41 @@ void parts(std::istream &stream, int part) {
       } else if (matched(m, 3)) {
         rules[line.substr(0, 2)] = line[6];
       } else {
-        polymer = line;
-      }
-    }
-  }
-
-  if (part == 1) {
-    for (int i = 0; i != 10; ++i) {
-      ss new_polymer;
-      new_polymer += polymer[0];
-      for (sz index = 1; index != size(polymer); ++index) {
-        if (auto iter = rules.find(polymer.substr(index - 1, 2)); iter != end(rules)) {
-          new_polymer += iter->second;
+        for (sz index = 1; index != size(line); ++index) {
+          ++polymer[line.substr(index - 1, 2)];
         }
-        new_polymer += polymer[index];
+        first = line.front();
+        last = line.back();
       }
-      polymer = new_polymer;
     }
-    std::map<char, int> histogram;
-    for (auto c: polymer) {
-      ++histogram[c];
-    }
-    vec<int> counts;
-    for (auto [ignored, count]: histogram) {
-      counts.push_back(count);
-    }
-    std::ranges::sort(counts);
-    result = counts.back() - counts.front();
   }
 
+  for (int i = 0; i != (part == 1 ? 10 : 40); ++i) {
+    std::map<ss, sz> new_polymer;
+    for (auto &[pair, count]: polymer) {
+      if (auto iter = rules.find(pair); iter != end(rules)) {
+        new_polymer[ss{pair[0], iter->second}] += count;
+        new_polymer[ss{iter->second, pair[1]}] += count;
+      } else {
+        new_polymer[pair] += count;
+      }
+    }
+    swap(polymer, new_polymer);
+  }
+
+  std::map<char, sz> histogram;
+  for (auto &[pair, count]: polymer) {
+    histogram[pair[0]] += count;
+    histogram[pair[1]] += count;
+  }
+  ++histogram[first];
+  ++histogram[last];
+  vec<sz> counts;
+  for (auto [ignored, count]: histogram) {
+    counts.push_back(count);
+  }
+  std::ranges::sort(counts);
+  result = (counts.back() - counts.front()) / 2;
 
   if (!test) {
     std::cout << result << std::endl;
