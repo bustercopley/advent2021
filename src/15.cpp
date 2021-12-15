@@ -1,4 +1,5 @@
 #include "precompiled.h"
+#include <queue>
 
 auto regex = re::regex(R"(^(\d+),(\d+)$|^\d+$)");
 
@@ -59,9 +60,8 @@ void parts(std::istream &stream, int part) {
     cy = 5 * cy;
   }
 
-  auto neighbor = [cx, cy](int x, int y,
-                    int direction) -> std::tuple<bool, int, int> {
-    switch (direction) {
+  auto neighbor = [cx, cy](int x, int y, int d) -> std::tuple<bool, int, int> {
+    switch (d) {
     case 0:
       if (x) return {true, x - 1, y};
       break;
@@ -79,19 +79,21 @@ void parts(std::istream &stream, int part) {
   };
 
   grid[0][0].best = 0;
-  std::map<ll, std::set<point>> stacks;
-  stacks[0].emplace(0, 0);
-  while (!empty(stacks) && begin(stacks)->first < grid[cy - 1][cx - 1].best) {
-    auto stack = move(begin(stacks)->second);
-    stacks.erase(begin(stacks));
-    for (const auto &[x, y]: stack) {
-      for (int direction = 0; direction != 4; ++direction) {
-        if (auto [ok, nx, ny] = neighbor(x, y, direction); ok) {
-          ll best = grid[y][x].best + grid[ny][nx].risk;
-          if (grid[ny][nx].best > best) {
-            grid[ny][nx].best = best;
-            stacks[best].emplace(nx, ny);
-          }
+
+  auto further = [&grid](point p, point q) {
+    return grid[p.x][p.y].best > grid[q.x][q.y].best;
+  };
+  std::priority_queue<point, vec<point>, decltype(further)> queue(further);
+  queue.emplace(0, 0);
+  while (!empty(queue)) {
+    auto [x, y] = queue.top();
+    queue.pop();
+    for (int direction = 0; direction != 4; ++direction) {
+      if (auto [ok, nx, ny] = neighbor(x, y, direction); ok) {
+        ll best = grid[y][x].best + grid[ny][nx].risk;
+        if (grid[ny][nx].best > best) {
+          grid[ny][nx].best = best;
+          queue.emplace(nx, ny);
         }
       }
     }
