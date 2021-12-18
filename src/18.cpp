@@ -1,9 +1,6 @@
 #include "precompiled.h"
 
 auto regex = re::regex(R"(^(\d+),(\d+)$|^[][0-9,]+$)");
-using couple = std::array<int, 2>;
-
-constexpr sz undef = std::numeric_limits<sz>::max();
 
 struct node {
   using ptr = std::unique_ptr<node>;
