@@ -39,7 +39,7 @@ void parts(std::istream &stream) {
       nodes.emplace_back(true, value, undef, undef);
       return n;
     }
-    assert(false);
+    std::abort();
   }};
 
   auto reduce = [&nodes](sz root) {
