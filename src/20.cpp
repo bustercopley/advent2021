@@ -17,9 +17,7 @@ void parts(std::istream &stream) {
   int result[2]{};
 
   ss algo;
-  std::set<point> image;
-  int width = 0;
-  int height = 0;
+  vec<ss>image;
   for (ss line; std::getline(stream, line);) {
     if (auto m = match(regex, line)) {
       if (matched(m, 1)) {
@@ -30,20 +28,14 @@ void parts(std::istream &stream) {
         if (empty(algo)) {
           algo = line;
         } else {
-          width = 0;
-          for (char c: line) {
-            if (c == '#') { image.emplace(width, height); }
-            ++width;
-          }
-          ++height;
+          image.push_back(move(line));
         }
       }
     }
   }
 
-  if (size(algo) != 512 || !width || !height) {
-    std::cout << "Bailing out, size " << size(algo) << ", width " << width
-              << ", height " << height << std::endl;
+  if (size(algo) != 512) {
+    std::cout << "Bailing out, size " << size(algo) << std::endl;
     return;
   }
 
@@ -52,32 +44,41 @@ void parts(std::istream &stream) {
 
   for (int part: {0, 1}) {
     for (int i = 0; i != (part ? 48 : 2); ++i) {
-      std::set<point> newimage;
+      int width = size(image[0]) + 4;
+      int height = size(image) + 4;
 
-      width += 4;
-      height += 4;
-      for (int y = 0; y != height; ++y) {
-        for (int x = 0; x != width; ++x) {
+      for (auto &line: image) {
+        line = ".." + line + "..";
+      }
+      image.emplace(begin(image), width, '.');
+      image.emplace(begin(image), width, '.');
+      image.push_back(image.front());
+      image.push_back(image.front());
+
+      for (int y = 0; y != height - 2; ++y) {
+        for (int x = 0; x != width - 2; ++x) {
           int n = 0;
-          n |= image.contains(point{x - 4, y - 4}) << 8;
-          n |= image.contains(point{x - 3, y - 4}) << 7;
-          n |= image.contains(point{x - 2, y - 4}) << 6;
-          n |= image.contains(point{x - 4, y - 3}) << 5;
-          n |= image.contains(point{x - 3, y - 3}) << 4;
-          n |= image.contains(point{x - 2, y - 3}) << 3;
-          n |= image.contains(point{x - 4, y - 2}) << 2;
-          n |= image.contains(point{x - 3, y - 2}) << 1;
-          n |= image.contains(point{x - 2, y - 2}) << 0;
+          n |= (image[y + 0][x + 0] == '#') << 8;
+          n |= (image[y + 0][x + 1] == '#') << 7;
+          n |= (image[y + 0][x + 2] == '#') << 6;
+          n |= (image[y + 1][x + 0] == '#') << 5;
+          n |= (image[y + 1][x + 1] == '#') << 4;
+          n |= (image[y + 1][x + 2] == '#') << 3;
+          n |= (image[y + 2][x + 0] == '#') << 2;
+          n |= (image[y + 2][x + 1] == '#') << 1;
+          n |= (image[y + 2][x + 2] == '#') << 0;
           if (invert_input) n ^= 511;
-          if ((algo[n] == '#') ^ invert_output) { newimage.emplace(x, y); }
+          image[y][x] = ((algo[n] == '#') ^ invert_output) ? '#' : '.';
         }
       }
 
       std::swap(invert_input, invert_output);
-      swap(image, newimage);
     }
 
-    result[part] = size(image);
+    result[part] = 0;
+    for (const auto & line: image) {
+      result[part] += std::ranges::count_if(line, [](char c){ return c == '#'; });
+    }
   }
 
   if (!test) {
