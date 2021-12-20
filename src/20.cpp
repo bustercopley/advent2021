@@ -17,7 +17,7 @@ void parts(std::istream &stream) {
   int result[2]{};
 
   ss algo;
-  vec<ss>image;
+  vec<ss> image;
   for (ss line; std::getline(stream, line);) {
     if (auto m = match(regex, line)) {
       if (matched(m, 1)) {
@@ -76,8 +76,8 @@ void parts(std::istream &stream) {
     }
 
     result[part] = 0;
-    for (const auto & line: image) {
-      result[part] += std::ranges::count_if(line, [](char c){ return c == '#'; });
+    for (const auto &line: image) {
+      result[part] += std::ranges::count(line, '#');
     }
   }
 
