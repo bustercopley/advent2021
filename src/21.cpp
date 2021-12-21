@@ -41,48 +41,53 @@ void parts(std::istream &stream) {
 
   // Part Two
   static constexpr int p[]{1, 3, 6, 7, 6, 3, 1};
-  ll matrix[22][10][22][10]{}; // matrix[score][posn][score][posn] = count
-  matrix[0][starting_positions[0]][0][starting_positions[1]] = 1;
+  ll matrix[2][22][10][22][10]{}; // matrix[i][score][posn][score][posn] = count
+  matrix[0][0][starting_positions[0]][0][starting_positions[1]] = 1;
   bool keep_going;
   do {
     keep_going = false;
-    ll oldmatrix[22][10][22][10];
-    std::memcpy(&oldmatrix, &matrix, sizeof matrix);
-    std::memset(&matrix, '\0', sizeof matrix);
-    for (int score1 = 0; score1 != 22; ++score1) {
+    std::memset(&matrix[1], '\0', sizeof matrix[1] - sizeof matrix[1][21]);
+    std::memcpy(&matrix[1][21], &matrix[0][21], sizeof matrix[0][21]);
+    for (int score1 = 0; score1 != 21; ++score1) {
       for (int p1 = 0; p1 != 10; ++p1) {
-        for (int score2 = 0; score2 != 22; ++score2) {
+        std::memcpy(&matrix[1][score1][p1][21], &matrix[0][score1][p1][21],
+          sizeof matrix[1][score1][p1][21]);
+      }
+    }
+    for (int score1 = 0; score1 != 21; ++score1) {
+      for (int p1 = 0; p1 != 10; ++p1) {
+        for (int score2 = 0; score2 != 21; ++score2) {
           for (int p2 = 0; p2 != 10; ++p2) {
-            ll count = oldmatrix[score1][p1][score2][p2];
-            if (score1 == 21 || score2 == 21) {
-              matrix[score1][p1][score2][p2] += count;
-            } else if (count) {
+            if (ll count = matrix[0][score1][p1][score2][p2]) {
               keep_going = true;
               for (int roll = 0; roll != 7; ++roll) {
                 int np1 = (p1 + roll + 3) % 10;
                 int nscore1 = std::min(21, score1 + np1 + 1);
-                matrix[nscore1][np1][score2][p2] += p[roll] * count;
+                matrix[1][nscore1][np1][score2][p2] += p[roll] * count;
               }
             }
           }
         }
       }
     }
-    std::memcpy(&oldmatrix, &matrix, sizeof matrix);
-    std::memset(&matrix, '\0', sizeof matrix);
-    for (int score1 = 0; score1 != 22; ++score1) {
+    std::memset(&matrix[0], '\0', sizeof matrix[0] - sizeof matrix[0][21]);
+    std::memcpy(&matrix[0][21], &matrix[1][21], sizeof matrix[1][21]);
+    for (int score1 = 0; score1 != 21; ++score1) {
       for (int p1 = 0; p1 != 10; ++p1) {
-        for (int score2 = 0; score2 != 22; ++score2) {
+        std::memcpy(&matrix[0][score1][p1][21], &matrix[1][score1][p1][21],
+          sizeof matrix[0][score1][p1][21]);
+      }
+    }
+    for (int score1 = 0; score1 != 21; ++score1) {
+      for (int p1 = 0; p1 != 10; ++p1) {
+        for (int score2 = 0; score2 != 21; ++score2) {
           for (int p2 = 0; p2 != 10; ++p2) {
-            ll count = oldmatrix[score1][p1][score2][p2];
-            if (score1 == 21 || score2 == 21) {
-              matrix[score1][p1][score2][p2] += count;
-            } else if (count) {
+            if (ll count = matrix[1][score1][p1][score2][p2]) {
               keep_going = true;
               for (int roll = 0; roll != 7; ++roll) {
                 int np2 = (p2 + roll + 3) % 10;
                 int nscore2 = std::min(21, score2 + np2 + 1);
-                matrix[score1][p1][nscore2][np2] += p[roll] * count;
+                matrix[0][score1][p1][nscore2][np2] += p[roll] * count;
               }
             }
           }
@@ -94,14 +99,14 @@ void parts(std::istream &stream) {
   for (int p1 = 0; p1 != 10; ++p1) {
     for (int score2 = 0; score2 != 21; ++score2) {
       for (int p2 = 0; p2 != 10; ++p2) {
-        counts[0] += matrix[21][p1][score2][p2];
+        counts[0] += matrix[0][21][p1][score2][p2];
       }
     }
   }
   for (int score1 = 0; score1 != 21; ++score1) {
     for (int p1 = 0; p1 != 10; ++p1) {
       for (int p2 = 0; p2 != 10; ++p2) {
-        counts[1] += matrix[score1][p1][21][p2];
+        counts[1] += matrix[0][score1][p1][21][p2];
       }
     }
   }
