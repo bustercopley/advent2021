@@ -1,0 +1,113 @@
+#include "precompiled.h"
+#include "symbols.h"
+
+auto regex = re::regex(R"(^(\w+) ([w-z])(?: (?:([w-z])|(-?\d+)))?$)");
+
+using registers = std::array<int, 5>; // w, x, y, z, pc
+std::map<registers, std::pair<bool, ss>> cache;
+
+symbols insns;
+enum class opcode {
+  inp = 0,
+  add = 1,
+  mul = 2,
+  div = 3,
+  mod = 4,
+  eql = 5,
+};
+
+struct insn {
+  opcode op;
+  int a;
+  int b;
+  bool immediate;
+};
+
+vec<insn> program;
+
+std::pair<bool, ss> monad(registers xs, int part) {
+  auto [iter, emplaced] = cache.try_emplace(xs);
+  auto &result = iter->second;
+ bypass_cache:
+  if (emplaced) {
+    int pc = xs[4]++;
+    if (pc == (int)size(program)) {
+      result = {xs[3] == 0, ""};
+    } else {
+      auto &a = xs[program[pc].a];
+      if (program[pc].op == opcode::inp) {
+        for (int i = 0; i != 9; ++i) {
+          if (part == 1) {
+            a = 9 - i;
+          } else {
+            a = 1 + i;
+          }
+          char digit = '0' + a;
+          if (auto [ok, subresult] = monad(xs, part); ok) {
+            result = {true, digit + subresult};
+            break;
+          }
+        }
+      } else {
+        int b = program[pc].b;
+        if (!program[pc].immediate) { b = xs[b]; }
+        bool baddiv = (program[pc].op == opcode::div && b == 0);
+        bool badmod = (program[pc].op == opcode::mod && (a < 0 || b <= 0));
+        if (!baddiv && !badmod) {
+          switch (program[pc].op) {
+          case opcode::add: a += b; break;
+          case opcode::mul: a *= b; break;
+          case opcode::div: a /= b; break;
+          case opcode::mod: a %= b; break;
+          case opcode::eql: a = (a == b); break;
+          default: std::abort();
+          }
+          goto bypass_cache;
+        }
+      }
+    }
+  }
+  return result;
+}
+
+void parts(int part) {
+  registers xs{};
+  if (auto [ok, result] = monad(xs, part); ok) {
+    std::cout << "Part " << part << ": " << result << std::endl;
+  }
+  cache.clear();
+}
+
+int main() {
+  insns["inp"];
+  insns["add"];
+  insns["mul"];
+  insns["div"];
+  insns["mod"];
+  insns["eql"];
+  if (std::ifstream stream("input/24"); stream) {
+    for (ss line; std::getline(stream, line);) {
+      if (auto m = match(regex, line)) {
+        auto op = static_cast<opcode>(insns[match_string(m, 1)]);
+        int a = match_string(m, 2)[0] - 'w';
+        bool immediate = matched(m, 4);
+        int b;
+        if (op == opcode::inp) {
+          b = 4;
+        } else if (immediate) {
+          b = string_to<int>(match_string(m, 4));
+        } else {
+          b = match_string(m, 3)[0] - 'w';
+        }
+        program.emplace_back(op, a, b, immediate);
+      }
+    }
+  }
+  if (empty(program)) {
+    std::cout << "Empty program\n";
+  } else {
+    parts(1);
+    parts(2);
+  }
+  return 0;
+}
