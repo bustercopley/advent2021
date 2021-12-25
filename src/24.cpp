@@ -6,15 +6,8 @@ auto regex = re::regex(R"(^(\w+) ([w-z])(?: (?:([w-z])|(-?\d+)))?$)");
 using registers = std::array<int, 5>; // w, x, y, z, pc
 std::map<registers, std::pair<bool, ss>> cache;
 
-symbols insns;
-enum class opcode {
-  inp = 0,
-  add = 1,
-  mul = 2,
-  div = 3,
-  mod = 4,
-  eql = 5,
-};
+symbols opnames;
+enum class opcode { inp = 0, add = 1, mul = 2, div = 3, mod = 4, eql = 5 };
 
 struct insn {
   opcode op;
@@ -22,14 +15,13 @@ struct insn {
   int b;
   bool immediate;
 };
-
 vec<insn> program;
 
-std::pair<bool, ss> monad(registers xs, int part) {
+std::pair<bool, ss> execute(registers xs, int part) {
   auto [iter, emplaced] = cache.try_emplace(xs);
   auto &result = iter->second;
- bypass_cache:
   if (emplaced) {
+bypass_cache:
     int pc = xs[4]++;
     if (pc == (int)size(program)) {
       result = {xs[3] == 0, ""};
@@ -37,33 +29,25 @@ std::pair<bool, ss> monad(registers xs, int part) {
       auto &a = xs[program[pc].a];
       if (program[pc].op == opcode::inp) {
         for (int i = 0; i != 9; ++i) {
-          if (part == 1) {
-            a = 9 - i;
-          } else {
-            a = 1 + i;
-          }
-          char digit = '0' + a;
-          if (auto [ok, subresult] = monad(xs, part); ok) {
-            result = {true, digit + subresult};
+          a = part == 1 ? 9 - i : i + 1;
+          char first = '0' + a;
+          if (auto [ok, rest] = execute(xs, part); ok) {
+            result = {true, first + rest};
             break;
           }
         }
       } else {
         int b = program[pc].b;
         if (!program[pc].immediate) { b = xs[b]; }
-        bool baddiv = (program[pc].op == opcode::div && b == 0);
-        bool badmod = (program[pc].op == opcode::mod && (a < 0 || b <= 0));
-        if (!baddiv && !badmod) {
-          switch (program[pc].op) {
-          case opcode::add: a += b; break;
-          case opcode::mul: a *= b; break;
-          case opcode::div: a /= b; break;
-          case opcode::mod: a %= b; break;
-          case opcode::eql: a = (a == b); break;
-          default: std::abort();
-          }
-          goto bypass_cache;
+        switch (program[pc].op) {
+        case opcode::add: a += b; break;
+        case opcode::mul: a *= b; break;
+        case opcode::div: a /= b; break;
+        case opcode::mod: a %= b; break;
+        case opcode::eql: a = (a == b); break;
+        default: std::abort();
         }
+        goto bypass_cache;
       }
     }
   }
@@ -72,23 +56,24 @@ std::pair<bool, ss> monad(registers xs, int part) {
 
 void parts(int part) {
   registers xs{};
-  if (auto [ok, result] = monad(xs, part); ok) {
+  if (auto [ok, result] = execute(xs, part); ok) {
     std::cout << "Part " << part << ": " << result << std::endl;
   }
-  cache.clear();
+  // Clearing the cache is hard work, so just throw it on the sidewalk.
+  (new std::map<registers, std::pair<bool, ss>>)->swap(cache);
 }
 
 int main() {
-  insns["inp"];
-  insns["add"];
-  insns["mul"];
-  insns["div"];
-  insns["mod"];
-  insns["eql"];
+  opnames["inp"];
+  opnames["add"];
+  opnames["mul"];
+  opnames["div"];
+  opnames["mod"];
+  opnames["eql"];
   if (std::ifstream stream("input/24"); stream) {
     for (ss line; std::getline(stream, line);) {
       if (auto m = match(regex, line)) {
-        auto op = static_cast<opcode>(insns[match_string(m, 1)]);
+        auto op = static_cast<opcode>(opnames[match_string(m, 1)]);
         int a = match_string(m, 2)[0] - 'w';
         bool immediate = matched(m, 4);
         int b;
